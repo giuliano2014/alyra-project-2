@@ -5,6 +5,7 @@
     "dotenv": "^16.0.3"
   },
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.16"
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "eth-gas-reporter": "^0.2.25"
   }
 }
