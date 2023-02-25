@@ -189,4 +189,75 @@ contract('Voting', accounts => {
     //     });
     // });
 
+    describe('test setVote function', () => {
+        beforeEach(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            await votingInstance.addVoter(voter2, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await votingInstance.addProposal('First proposal', { from: voter1 });
+            await votingInstance.addProposal('Second proposal', { from: voter2 });
+            await votingInstance.addProposal('Third proposal', { from: voter2 });
+            await votingInstance.endProposalsRegistering({ from: owner });
+        });
+
+        it('should vote count proposal set to 0, after adding proposal', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+
+            const firstProposal = await votingInstance.getOneProposal(1, { from: voter1 });
+            const secondProposal = await votingInstance.getOneProposal(2, { from: voter1 });
+            
+            expect(await firstProposal.voteCount).to.be.bignumber.equal(new BN(0));
+            expect(await secondProposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should vote count increased by 1, after the proposal has been chosen', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            await votingInstance.setVote(1, { from: voter1 });
+            await votingInstance.setVote(2, { from: voter2 });
+
+            const firstProposal = await votingInstance.getOneProposal(1, { from: voter1 });
+            const secondProposal = await votingInstance.getOneProposal(2, { from: voter2 });
+            
+            expect(await firstProposal.voteCount).to.be.bignumber.equal(new BN(1));
+            expect(await secondProposal.voteCount).to.be.bignumber.equal(new BN(1));
+        });
+
+        it('should update registered voter, after voting for a proposal', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            await votingInstance.setVote(2, { from: voter1 });
+
+            const voter = await votingInstance.getVoter(voter1, { from: voter1 });
+
+            expect(voter.hasVoted).to.equal(true);
+            expect(voter.votedProposalId).to.be.bignumber.equal('2');
+        });
+
+        it('should revert when trying to vote, before voting session starts', async () => {
+            await expectRevert(
+                votingInstance.setVote(2, { from: voter1 }),
+                'Voting session havent started yet'
+            );
+        });
+
+        it('should revert when a voter has already voted', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            await votingInstance.setVote(1, { from: voter1 });
+
+            await expectRevert(
+                votingInstance.setVote(1, { from: voter1 }),
+                "You have already voted"
+            );
+        });
+
+        it('should revert when trying to vote for a non-existing proposal', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+
+            await expectRevert(
+                votingInstance.setVote(401, { from: voter1 }),
+                'Proposal not found'
+            );
+        });
+    });
+
 });
