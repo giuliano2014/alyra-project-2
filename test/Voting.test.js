@@ -1,4 +1,4 @@
-const { BN, expectRevert } = require('@openzeppelin/test-helpers');
+const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 
 const Voting = artifacts.require('Voting');
@@ -72,7 +72,7 @@ contract('Voting', accounts => {
             votingInstance = await Voting.new({ from: owner });
         });
 
-        it("should return correct voter information", async () => {
+        it('should return correct voter information', async () => {
             await votingInstance.addVoter(voter1, { from: owner });
 
             const voter = await votingInstance.getVoter(voter1, { from: voter1 });
@@ -82,13 +82,13 @@ contract('Voting', accounts => {
             expect(voter.votedProposalId).to.be.bignumber.equal(new BN(0));
         });
 
-        it("should revert when getting non-registered voter", async () => {
+        it('should revert when getting non-registered voter', async () => {
             await expectRevert.unspecified(
                 votingInstance.getVoter(nonVoter, { from: voter1 }),
             );
         });
 
-        // it("should revert when getting non-registered voter", async () => {
+        // it('should revert when getting non-registered voter', async () => {
         //     await expectRevert(
         //         votingInstance.getVoter(nonVoter, { from: voter1 }),
         //         "You're not a voter"
@@ -96,5 +96,38 @@ contract('Voting', accounts => {
         // });
     });
 
-});
+    describe('test addProposal function', () => {
+        beforeEach(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+        });
 
+        it('should add a proposal and emit ProposalRegistered event', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
+
+            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
+            const proposal = await votingInstance.getOneProposal(1, { from: voter1 });
+
+            expect(proposal.description).to.be.equal('Proposal 1');
+            expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+
+            expectEvent(addProposal, 'ProposalRegistered', { proposalId: new BN(1) });
+        });
+
+        it('should revert when adding an empty proposal', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await expectRevert(
+                votingInstance.addProposal('', { from: voter1 }),
+                'Vous ne pouvez pas ne rien proposer'
+            );
+        });
+
+        it("should revert when adding a proposal outside of proposals registration phase", async () => {
+            await expectRevert(
+                votingInstance.addProposal("Proposal 1", { from: voter1 }),
+                "Proposals are not allowed yet"
+            );
+        });
+    });
+
+});
