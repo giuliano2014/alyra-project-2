@@ -295,4 +295,40 @@ contract('Voting', accounts => {
         });
     });
 
+    describe('test startVotingSession function', () => {
+
+        let startVotingSession;
+
+        before(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await votingInstance.addProposal('First proposal', { from: voter1 });
+            await votingInstance.endProposalsRegistering({ from: owner });
+            startVotingSession = await votingInstance.startVotingSession({ from: owner });
+        });
+
+        it('should start voting session when proposals registration is ended', async () => {
+            expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(3));
+            await expectEvent(startVotingSession, 'WorkflowStatusChange', {
+                previousStatus: new BN(2),
+                newStatus: new BN(3)
+            });
+        });
+
+        it('should revert when trying to start voting session before proposals registration is ended', async () => {
+            await expectRevert(
+                votingInstance.startVotingSession({ from: owner }),
+                'Registering proposals phase is not finished'
+            );
+        });
+
+        it('should revert when a non-owner tries to start voting session', async () => {
+            await expectRevert(
+                votingInstance.startVotingSession({ from: voter1 }),
+                'Ownable: caller is not the owner'
+            );
+        });
+    });
+
 });
