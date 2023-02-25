@@ -130,4 +130,63 @@ contract('Voting', accounts => {
         });
     });
 
+    describe('test getOneProposal function', () => {
+        before(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter2, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+        });
+
+        it('should get a proposal', async () => {
+            await votingInstance.addProposal('Be kind to all life forms', { from: voter2 });
+            const proposal = await votingInstance.getOneProposal(1, { from: voter2 });
+
+            expect(proposal.description).to.be.equal('Be kind to all life forms');
+            expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should revert when trying to get a proposal by non-voter account', async () => {
+            await expectRevert(
+                votingInstance.getOneProposal(1, { from: nonVoter }),
+                "You're not a voter"
+            );
+        });
+
+        it("should revert when trying to get a non-exist proposal ", async () => {
+            await expectRevert.unspecified(
+                votingInstance.getOneProposal(401, { from: voter2 }),
+            );
+        });
+    });
+
+    // describe('test getOneProposal function', () => {
+    //     beforeEach(async () => {
+    //         votingInstance = await Voting.new({ from: owner });
+    //         await votingInstance.addVoter(voter2, { from: owner });
+    //         await votingInstance.startProposalsRegistering({ from: owner });
+    //     });
+
+    //     it('should get a proposal', async () => {
+    //         await votingInstance.addProposal('Be kind to all life forms', { from: voter2 });
+    //         const proposal = await votingInstance.getOneProposal(1, { from: voter2 });
+
+    //         expect(proposal.description).to.be.equal('Be kind to all life forms');
+    //         expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+    //     });
+
+    //     it('should revert when trying to get a proposal by non-voter account', async () => {
+    //         await expectRevert(
+    //             votingInstance.getOneProposal(1, { from: nonVoter }),
+    //             "You're not a voter"
+    //         );
+    //     });
+
+    //     it("should revert when trying to get a non-exist proposal ", async () => {
+    //         await votingInstance.addProposal('Be kind to all life forms', { from: voter2 });
+    //         await expectRevert.unspecified(
+    //             votingInstance.getOneProposal(401, { from: voter2 }),
+    //         );
+    //     });
+    // });
+
 });
