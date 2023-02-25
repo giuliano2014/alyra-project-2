@@ -260,6 +260,47 @@ contract('Voting', accounts => {
         });
     });
 
+    describe('test startProposalsRegistering function', () => {
+
+        let startProposalsRegistering;
+
+        beforeEach(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            startProposalsRegistering = await votingInstance.startProposalsRegistering({ from: owner });
+        });
+
+        it('should start proposals registering after voters registration started', async () => {
+            expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(1));
+
+            await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
+                previousStatus: new BN(0),
+                newStatus: new BN(1)
+            });
+        });
+
+        it('should add GENESIS proposal', async () => {
+            const proposal = await votingInstance.getOneProposal(0, { from: voter1 });
+
+            expect(proposal.description).to.be.equal('GENESIS');
+            expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should revert when trying to start proposals registering before voters registration started', async () => {
+            await expectRevert(
+                votingInstance.startProposalsRegistering({ from: owner }),
+                'Registering proposals cant be started now'
+            );
+        });
+
+        it('should revert when a non-owner tries to start proposals registering', async () => {
+            await expectRevert(
+                votingInstance.startProposalsRegistering({ from: voter1 }),
+                'Ownable: caller is not the owner'
+            );
+        });
+    });
+
     describe('test endProposalsRegistering function', () => {
 
         let endProposalsRegistering;
