@@ -9,6 +9,7 @@ contract('Voting', accounts => {
     const owner = accounts[0];
     const voter1 = accounts[1];
     const voter2 = accounts[2];
+    const nonVoter = accounts[3];
 
     describe('test onlyVoter modifier', () => {
         beforeEach(async () => {
@@ -64,6 +65,35 @@ contract('Voting', accounts => {
                 'Ownable: caller is not the owner'
             );
         });
+    });
+
+    describe('test getVoter function', () => {
+        beforeEach(async () => {
+            votingInstance = await Voting.new({ from: owner });
+        });
+
+        it("should return correct voter information", async () => {
+            await votingInstance.addVoter(voter1, { from: owner });
+
+            const voter = await votingInstance.getVoter(voter1, { from: voter1 });
+
+            expect(voter.isRegistered).to.be.true;
+            expect(voter.hasVoted).to.be.false;
+            expect(voter.votedProposalId).to.be.bignumber.equal(new BN(0));
+        });
+
+        it("should revert when getting non-registered voter", async () => {
+            await expectRevert.unspecified(
+                votingInstance.getVoter(nonVoter, { from: voter1 }),
+            );
+        });
+
+        // it("should revert when getting non-registered voter", async () => {
+        //     await expectRevert(
+        //         votingInstance.getVoter(nonVoter, { from: voter1 }),
+        //         "You're not a voter"
+        //     );
+        // });
     });
 
 });
