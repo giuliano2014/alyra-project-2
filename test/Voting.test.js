@@ -9,9 +9,10 @@ contract('Voting', accounts => {
     const owner = accounts[0];
     const voter1 = accounts[1];
     const voter2 = accounts[2];
-    const nonVoter = accounts[3];
+    const voter3 = accounts[3];
+    const nonVoter = accounts[4];
 
-    describe('test onlyVoter modifier', () => {
+    describe('test onlyVoters modifier', () => {
         beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
@@ -260,8 +261,52 @@ contract('Voting', accounts => {
         });
     });
 
-    describe('test startProposalsRegistering function', () => {
+    describe('test tallyVotes function', () => {
+        let tallyVotes;
 
+        beforeEach(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            await votingInstance.addVoter(voter2, { from: owner });
+            await votingInstance.addVoter(voter3, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await votingInstance.addProposal("Eating", { from: voter1 });
+            await votingInstance.addProposal("Sleeping", { from: voter2 });
+            await votingInstance.addProposal("Working", { from: voter3 });
+            await votingInstance.endProposalsRegistering({ from: owner });
+            await votingInstance.startVotingSession({ from: owner });
+            await votingInstance.setVote(0, { from: voter1 });
+            await votingInstance.setVote(1, { from: voter2 });
+            await votingInstance.setVote(1, { from: voter3 });
+            await votingInstance.endVotingSession({ from: owner });
+            tallyVotes = await votingInstance.tallyVotes({ from: owner });
+        });
+
+        it('should tally votes when voting session is ended', async () => {
+            expect(await votingInstance.winningProposalID()).to.be.bignumber.equal(new BN(1));
+            expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(5));
+            await expectEvent(tallyVotes, 'WorkflowStatusChange', {
+                previousStatus: new BN(4),
+                newStatus: new BN(5)
+            });
+        });
+
+        it('should revert when trying to tally votes before voting session ended', async () => {
+            await expectRevert(
+                votingInstance.tallyVotes({ from: owner }),
+                "Current status is not voting session ended"
+            );
+        });
+
+        it('should revert when a non-owner tries to tally votes', async () => {
+            await expectRevert(
+                votingInstance.tallyVotes({ from: voter1 }),
+                'Ownable: caller is not the owner'
+            );
+        });
+    });
+
+    describe('test startProposalsRegistering function', () => {
         let startProposalsRegistering;
 
         beforeEach(async () => {
@@ -302,7 +347,6 @@ contract('Voting', accounts => {
     });
 
     describe('test endProposalsRegistering function', () => {
-
         let endProposalsRegistering;
 
         beforeEach(async () => {
@@ -337,7 +381,6 @@ contract('Voting', accounts => {
     });
 
     describe('test startVotingSession function', () => {
-
         let startVotingSession;
 
         before(async () => {
@@ -373,7 +416,6 @@ contract('Voting', accounts => {
     });
 
     describe('test endVotingSession function', () => {
-
         let endVotingSession;
 
         before(async () => {
