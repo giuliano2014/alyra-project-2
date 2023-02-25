@@ -331,4 +331,41 @@ contract('Voting', accounts => {
         });
     });
 
+    describe('test endVotingSession function', () => {
+
+        let endVotingSession;
+
+        before(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await votingInstance.addProposal('First proposal', { from: voter1 });
+            await votingInstance.endProposalsRegistering({ from: owner });
+            await votingInstance.startVotingSession({ from: owner });
+            endVotingSession = await votingInstance.endVotingSession({ from: owner });
+        });
+
+        it('should end voting session when start voting session started', async () => {
+            expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(4));
+            await expectEvent(endVotingSession, 'WorkflowStatusChange', {
+                previousStatus: new BN(3),
+                newStatus: new BN(4)
+            });
+        });
+
+        it('should revert when trying to end voting session before start voting session started', async () => {
+            await expectRevert(
+                votingInstance.endVotingSession({ from: owner }),
+                'Voting session havent started yet'
+            );
+        });
+
+        it('should revert when a non-owner tries to end voting session', async () => {
+            await expectRevert(
+                votingInstance.endVotingSession({ from: voter1 }),
+                'Ownable: caller is not the owner'
+            );
+        });
+    });
+
 });
