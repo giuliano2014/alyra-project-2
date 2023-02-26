@@ -359,11 +359,6 @@ contract('Voting', accounts => {
 
         it('should start proposals registering after voters registration started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(1));
-
-            await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
-                previousStatus: new BN(0),
-                newStatus: new BN(1)
-            });
         });
 
         it('should add GENESIS proposal', async () => {
@@ -371,6 +366,13 @@ contract('Voting', accounts => {
 
             expect(proposal.description).to.be.equal('GENESIS');
             expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
+            await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
+                previousStatus: new BN(0),
+                newStatus: new BN(1)
+            });
         });
 
         it('should revert when trying to start proposals registering before voters registration started', async () => {
