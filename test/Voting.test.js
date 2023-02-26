@@ -114,7 +114,7 @@ contract('Voting', accounts => {
         it('should add a proposal', async () => {
             await votingInstance.startProposalsRegistering({ from: owner });
 
-            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
+            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 }); // ??? remove it and fixe it
             const proposal = await votingInstance.getOneProposal(1, { from: voter1 });
 
             expect(proposal.description).to.be.equal('Proposal 1');
@@ -235,6 +235,16 @@ contract('Voting', accounts => {
             
             expect(await firstProposal.voteCount).to.be.bignumber.equal(new BN(1));
             expect(await secondProposal.voteCount).to.be.bignumber.equal(new BN(1));
+        });
+
+        it('should emit Voted event', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            const setVote = await votingInstance.setVote(1, { from: voter1 });
+
+            expectEvent(setVote, 'Voted', {
+                voter: voter1,
+                proposalId: new BN(1),
+            });
         });
 
         it('should update registered voter, after voting for a proposal', async () => {
