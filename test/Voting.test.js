@@ -261,7 +261,7 @@ contract('Voting', accounts => {
         });
     });
 
-    describe('test tallyVotes function', () => {
+    describe.only('test tallyVotes function', () => {
         let tallyVotes;
 
         beforeEach(async () => {
@@ -285,6 +285,9 @@ contract('Voting', accounts => {
         it('should tally votes when voting session is ended', async () => {
             expect(await votingInstance.winningProposalID()).to.be.bignumber.equal(new BN(1));
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(5));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(tallyVotes, 'WorkflowStatusChange', {
                 previousStatus: new BN(4),
                 newStatus: new BN(5)
