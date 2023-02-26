@@ -401,8 +401,11 @@ contract('Voting', accounts => {
             endProposalsRegistering = await votingInstance.endProposalsRegistering({ from: owner });
         });
 
-        it('should end proposals registration when proposals registration is started', async () => {
+        it('should end proposals registration after proposals registration started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(2));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(endProposalsRegistering, 'WorkflowStatusChange', {
                 previousStatus: new BN(1),
                 newStatus: new BN(2)
