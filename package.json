@@ -5,7 +5,12 @@
     "dotenv": "^16.0.3"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.7",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.16",
-    "eth-gas-reporter": "^0.2.25"
+    "eth-gas-reporter": "^0.2.25",
+    "hardhat-gas-reporter": "^1.0.9",
+    "solidity-coverage": "^0.8.2",
+    "web3": "^1.8.2"
   }
 }

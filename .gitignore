@@ -354,3 +354,13 @@ MigrationBackup/
 
 # truffle build directory
 build/
+
+# Hardhat artifacts directory
+artifacts/
+
+# Hardhat cache directory
+cache/
+
+# Hardhat coverage file and directory
+coverage.json
+coverage/
