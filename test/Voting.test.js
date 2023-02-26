@@ -306,6 +306,40 @@ contract('Voting', accounts => {
         });
     });
 
+    describe('test winningProposalID', () => {
+        let winningProposalID;
+
+        before(async () => {
+            votingInstance = await Voting.new({ from: owner });
+            await votingInstance.addVoter(voter1, { from: owner });
+            await votingInstance.addVoter(voter2, { from: owner });
+            await votingInstance.addVoter(voter3, { from: owner });
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await votingInstance.addProposal("Eating", { from: voter1 });
+            await votingInstance.addProposal("Sleeping", { from: voter2 });
+            await votingInstance.addProposal("Working", { from: voter3 });
+            await votingInstance.endProposalsRegistering({ from: owner });
+            await votingInstance.startVotingSession({ from: owner });
+            await votingInstance.setVote(2, { from: voter1 });
+            await votingInstance.setVote(1, { from: voter2 });
+            await votingInstance.setVote(2, { from: voter3 });
+            await votingInstance.endVotingSession({ from: owner });
+        });
+
+        it('should winning proposal id equals to 0', async () => {
+            winningProposalID = await votingInstance.winningProposalID();
+
+            expect(winningProposalID).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should winning proposal id equals to 2', async () => {
+            await votingInstance.tallyVotes({ from: owner });
+            winningProposalID = await votingInstance.winningProposalID();
+
+            expect(winningProposalID).to.be.bignumber.equal(new BN(2));
+        });
+    });
+
     describe('test startProposalsRegistering function', () => {
         let startProposalsRegistering;
 
