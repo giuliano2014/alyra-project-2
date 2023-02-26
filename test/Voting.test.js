@@ -61,7 +61,6 @@ contract('Voting', accounts => {
     
         it('should revert when adding a registered voter', async () => {
             await votingInstance.addVoter(voter1, { from: owner });
-    
             await expectRevert(
                 votingInstance.addVoter(voter1, { from: owner }),
                 'Already registered'
@@ -83,7 +82,6 @@ contract('Voting', accounts => {
 
         it('should return correct voter information', async () => {
             await votingInstance.addVoter(voter1, { from: owner });
-
             const voter = await votingInstance.getVoter(voter1, { from: voter1 });
 
             expect(voter.isRegistered).to.be.true;
@@ -91,18 +89,18 @@ contract('Voting', accounts => {
             expect(voter.votedProposalId).to.be.bignumber.equal(new BN(0));
         });
 
+        it('should revert when getting voter by a non-voter account', async () => {
+            await expectRevert(
+                votingInstance.getVoter(voter1, { from: nonVoter }),
+                "You're not a voter"
+            );
+        });
+
         it('should revert when getting non-registered voter', async () => {
             await expectRevert.unspecified(
                 votingInstance.getVoter(nonVoter, { from: voter1 }),
             );
         });
-
-        // it('should revert when getting non-registered voter', async () => {
-        //     await expectRevert(
-        //         votingInstance.getVoter(nonVoter, { from: voter1 }),
-        //         "You're not a voter"
-        //     );
-        // });
     });
 
     describe('test addProposal function', () => {
@@ -132,6 +130,14 @@ contract('Voting', accounts => {
             await expectRevert(
                 votingInstance.addProposal('', { from: voter1 }),
                 'Vous ne pouvez pas ne rien proposer'
+            );
+        });
+
+        it("should revert when adding a proposal by a non-voter account", async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
+            await expectRevert(
+                votingInstance.addProposal("Proposal 1", { from: nonVoter }),
+                "You're not a voter"
             );
         });
 
@@ -172,36 +178,6 @@ contract('Voting', accounts => {
         });
     });
 
-    // describe('test getOneProposal function', () => {
-    //     beforeEach(async () => {
-    //         votingInstance = await Voting.new({ from: owner });
-    //         await votingInstance.addVoter(voter2, { from: owner });
-    //         await votingInstance.startProposalsRegistering({ from: owner });
-    //     });
-
-    //     it('should get a proposal', async () => {
-    //         await votingInstance.addProposal('Be kind to all life forms', { from: voter2 });
-    //         const proposal = await votingInstance.getOneProposal(1, { from: voter2 });
-
-    //         expect(proposal.description).to.be.equal('Be kind to all life forms');
-    //         expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
-    //     });
-
-    //     it('should revert when trying to get a proposal by non-voter account', async () => {
-    //         await expectRevert(
-    //             votingInstance.getOneProposal(1, { from: nonVoter }),
-    //             "You're not a voter"
-    //         );
-    //     });
-
-    //     it("should revert when trying to get a non-exist proposal ", async () => {
-    //         await votingInstance.addProposal('Be kind to all life forms', { from: voter2 });
-    //         await expectRevert.unspecified(
-    //             votingInstance.getOneProposal(401, { from: voter2 }),
-    //         );
-    //     });
-    // });
-
     describe('test setVote function', () => {
         beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
@@ -216,7 +192,6 @@ contract('Voting', accounts => {
 
         it('should vote count proposal set to 0, after adding proposal', async () => {
             await votingInstance.startVotingSession({ from: owner });
-
             const firstProposal = await votingInstance.getOneProposal(1, { from: voter1 });
             const secondProposal = await votingInstance.getOneProposal(2, { from: voter1 });
             
@@ -228,7 +203,6 @@ contract('Voting', accounts => {
             await votingInstance.startVotingSession({ from: owner });
             await votingInstance.setVote(1, { from: voter1 });
             await votingInstance.setVote(2, { from: voter2 });
-
             const firstProposal = await votingInstance.getOneProposal(1, { from: voter1 });
             const secondProposal = await votingInstance.getOneProposal(2, { from: voter2 });
             
@@ -249,7 +223,6 @@ contract('Voting', accounts => {
         it('should update registered voter, after voting for a proposal', async () => {
             await votingInstance.startVotingSession({ from: owner });
             await votingInstance.setVote(2, { from: voter1 });
-
             const voter = await votingInstance.getVoter(voter1, { from: voter1 });
 
             expect(voter.hasVoted).to.equal(true);
@@ -266,7 +239,6 @@ contract('Voting', accounts => {
         it('should revert when a voter has already voted', async () => {
             await votingInstance.startVotingSession({ from: owner });
             await votingInstance.setVote(1, { from: voter1 });
-
             await expectRevert(
                 votingInstance.setVote(1, { from: voter1 }),
                 "You have already voted"
@@ -275,17 +247,22 @@ contract('Voting', accounts => {
 
         it('should revert when trying to vote for a non-existing proposal', async () => {
             await votingInstance.startVotingSession({ from: owner });
-
             await expectRevert(
                 votingInstance.setVote(401, { from: voter1 }),
                 'Proposal not found'
             );
         });
+
+        it('should revert when trying to vote with a non-voter account', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            await expectRevert(
+                votingInstance.setVote(1, { from: nonVoter }),
+                "You're not a voter"
+            );
+        });
     });
 
     describe('test tallyVotes function', () => {
-        let tallyVotes;
-
         beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
@@ -300,16 +277,19 @@ contract('Voting', accounts => {
             await votingInstance.setVote(0, { from: voter1 });
             await votingInstance.setVote(1, { from: voter2 });
             await votingInstance.setVote(1, { from: voter3 });
-            await votingInstance.endVotingSession({ from: owner });
-            tallyVotes = await votingInstance.tallyVotes({ from: owner });
         });
 
         it('should tally votes when voting session is ended', async () => {
+            await votingInstance.endVotingSession({ from: owner });
+            await votingInstance.tallyVotes({ from: owner });
             expect(await votingInstance.winningProposalID()).to.be.bignumber.equal(new BN(1));
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(5));
         });
 
         it('should emit WorkflowStatusChange event', async () => {
+            await votingInstance.endVotingSession({ from: owner });
+            const tallyVotes = await votingInstance.tallyVotes({ from: owner });
+
             await expectEvent(tallyVotes, 'WorkflowStatusChange', {
                 previousStatus: new BN(4),
                 newStatus: new BN(5)
@@ -324,6 +304,7 @@ contract('Voting', accounts => {
         });
 
         it('should revert when a non-owner tries to tally votes', async () => {
+            await votingInstance.endVotingSession({ from: owner });
             await expectRevert(
                 votingInstance.tallyVotes({ from: voter1 }),
                 'Ownable: caller is not the owner'
@@ -366,19 +347,18 @@ contract('Voting', accounts => {
     });
 
     describe('test startProposalsRegistering function', () => {
-        let startProposalsRegistering;
-
         beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
-            startProposalsRegistering = await votingInstance.startProposalsRegistering({ from: owner });
         });
 
         it('should start proposals registering after voters registration started', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(1));
         });
 
         it('should add GENESIS proposal', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
             const proposal = await votingInstance.getOneProposal(0, { from: voter1 });
 
             expect(proposal.description).to.be.equal('GENESIS');
@@ -386,6 +366,8 @@ contract('Voting', accounts => {
         });
 
         it('should emit WorkflowStatusChange event', async () => {
+            const startProposalsRegistering = await votingInstance.startProposalsRegistering({ from: owner });
+
             await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
                 previousStatus: new BN(0),
                 newStatus: new BN(1)
@@ -393,6 +375,7 @@ contract('Voting', accounts => {
         });
 
         it('should revert when trying to start proposals registering before voters registration started', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
             await expectRevert(
                 votingInstance.startProposalsRegistering({ from: owner }),
                 'Registering proposals cant be started now'
@@ -401,28 +384,28 @@ contract('Voting', accounts => {
 
         it('should revert when a non-owner tries to start proposals registering', async () => {
             await expectRevert(
-                votingInstance.startProposalsRegistering({ from: voter1 }),
+                votingInstance.startProposalsRegistering({ from: nonVoter }),
                 'Ownable: caller is not the owner'
             );
         });
     });
 
     describe('test endProposalsRegistering function', () => {
-        let endProposalsRegistering;
-
         beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
             await votingInstance.startProposalsRegistering({ from: owner });
             await votingInstance.addProposal('First proposal', { from: voter1 });
-            endProposalsRegistering = await votingInstance.endProposalsRegistering({ from: owner });
         });
 
         it('should end proposals registration after proposals registration started', async () => {
+            await votingInstance.endProposalsRegistering({ from: owner });
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(2));
         });
 
         it('should emit WorkflowStatusChange event', async () => {
+            const endProposalsRegistering = await votingInstance.endProposalsRegistering({ from: owner });
+
             await expectEvent(endProposalsRegistering, 'WorkflowStatusChange', {
                 previousStatus: new BN(1),
                 newStatus: new BN(2)
@@ -430,6 +413,7 @@ contract('Voting', accounts => {
         });
 
         it('should revert when trying to end proposals registration before it started', async () => {
+            await votingInstance.endProposalsRegistering({ from: owner });
             await expectRevert(
                 votingInstance.endProposalsRegistering({ from: owner }),
                 'Registering proposals havent started yet'
@@ -438,29 +422,29 @@ contract('Voting', accounts => {
 
         it('should revert when a non-owner tries to end proposals registration', async () => {
             await expectRevert(
-                votingInstance.endProposalsRegistering({ from: voter1 }),
+                votingInstance.endProposalsRegistering({ from: nonVoter }),
                 'Ownable: caller is not the owner'
             );
         });
     });
 
     describe('test startVotingSession function', () => {
-        let startVotingSession;
-
-        before(async () => {
+        beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
             await votingInstance.startProposalsRegistering({ from: owner });
             await votingInstance.addProposal('First proposal', { from: voter1 });
             await votingInstance.endProposalsRegistering({ from: owner });
-            startVotingSession = await votingInstance.startVotingSession({ from: owner });
         });
 
         it('should start voting session when proposals registration is ended', async () => {
+            await votingInstance.startVotingSession({ from: owner });
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(3));
         });
 
         it('should emit WorkflowStatusChange event', async () => {
+            const startVotingSession = await votingInstance.startVotingSession({ from: owner });
+
             await expectEvent(startVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(2),
                 newStatus: new BN(3)
@@ -468,6 +452,7 @@ contract('Voting', accounts => {
         });
 
         it('should revert when trying to start voting session before proposals registration is ended', async () => {
+            await votingInstance.startVotingSession({ from: owner });
             await expectRevert(
                 votingInstance.startVotingSession({ from: owner }),
                 'Registering proposals phase is not finished'
@@ -476,30 +461,30 @@ contract('Voting', accounts => {
 
         it('should revert when a non-owner tries to start voting session', async () => {
             await expectRevert(
-                votingInstance.startVotingSession({ from: voter1 }),
+                votingInstance.startVotingSession({ from: nonVoter }),
                 'Ownable: caller is not the owner'
             );
         });
     });
 
     describe('test endVotingSession function', () => {
-        let endVotingSession;
-
-        before(async () => {
+        beforeEach(async () => {
             votingInstance = await Voting.new({ from: owner });
             await votingInstance.addVoter(voter1, { from: owner });
             await votingInstance.startProposalsRegistering({ from: owner });
             await votingInstance.addProposal('First proposal', { from: voter1 });
             await votingInstance.endProposalsRegistering({ from: owner });
             await votingInstance.startVotingSession({ from: owner });
-            endVotingSession = await votingInstance.endVotingSession({ from: owner });
         });
 
         it('should end voting session after start voting session started', async () => {
+            await votingInstance.endVotingSession({ from: owner });
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(4));
         });
 
         it('should emit WorkflowStatusChange event', async () => {
+            const endVotingSession = await votingInstance.endVotingSession({ from: owner });
+
             await expectEvent(endVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(3),
                 newStatus: new BN(4)
@@ -507,6 +492,7 @@ contract('Voting', accounts => {
         });
 
         it('should revert when trying to end voting session before start voting session started', async () => {
+            await votingInstance.endVotingSession({ from: owner });
             await expectRevert(
                 votingInstance.endVotingSession({ from: owner }),
                 'Voting session havent started yet'
