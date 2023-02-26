@@ -441,6 +441,9 @@ contract('Voting', accounts => {
 
         it('should start voting session when proposals registration is ended', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(3));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(startVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(2),
                 newStatus: new BN(3)
