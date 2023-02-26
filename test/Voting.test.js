@@ -50,6 +50,14 @@ contract('Voting', accounts => {
             expect(voter.hasVoted).to.be.false;
             expect(voter.votedProposalId).to.be.bignumber.equal(new BN(0));
         });
+
+        it('should emit VoterRegistered event', async () => {
+            const addVoter = await votingInstance.addVoter(voter1, { from: owner });
+
+            await expectEvent(addVoter, 'VoterRegistered', {
+                voterAddress: voter1
+            });
+        });
     
         it('should revert when adding a registered voter', async () => {
             await votingInstance.addVoter(voter1, { from: owner });
