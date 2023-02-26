@@ -103,7 +103,7 @@ contract('Voting', accounts => {
             await votingInstance.addVoter(voter1, { from: owner });
         });
 
-        it('should add a proposal and emit ProposalRegistered event', async () => {
+        it('should add a proposal', async () => {
             await votingInstance.startProposalsRegistering({ from: owner });
 
             const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
@@ -111,6 +111,11 @@ contract('Voting', accounts => {
 
             expect(proposal.description).to.be.equal('Proposal 1');
             expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should emit ProposalRegistered event', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
+            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
 
             expectEvent(addProposal, 'ProposalRegistered', { proposalId: new BN(1) });
         });
@@ -261,7 +266,7 @@ contract('Voting', accounts => {
         });
     });
 
-    describe.only('test tallyVotes function', () => {
+    describe('test tallyVotes function', () => {
         let tallyVotes;
 
         beforeEach(async () => {
