@@ -478,8 +478,11 @@ contract('Voting', accounts => {
             endVotingSession = await votingInstance.endVotingSession({ from: owner });
         });
 
-        it('should end voting session when start voting session started', async () => {
+        it('should end voting session after start voting session started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(4));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(endVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(3),
                 newStatus: new BN(4)
