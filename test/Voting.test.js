@@ -113,8 +113,7 @@ contract('Voting', accounts => {
 
         it('should add a proposal', async () => {
             await votingInstance.startProposalsRegistering({ from: owner });
-
-            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 }); // ??? remove it and fixe it
+            await votingInstance.addProposal('Proposal 1', { from: voter1 });
             const proposal = await votingInstance.getOneProposal(1, { from: voter1 });
 
             expect(proposal.description).to.be.equal('Proposal 1');
