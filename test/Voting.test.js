@@ -50,6 +50,14 @@ contract('Voting', accounts => {
             expect(voter.hasVoted).to.be.false;
             expect(voter.votedProposalId).to.be.bignumber.equal(new BN(0));
         });
+
+        it('should emit VoterRegistered event', async () => {
+            const addVoter = await votingInstance.addVoter(voter1, { from: owner });
+
+            await expectEvent(addVoter, 'VoterRegistered', {
+                voterAddress: voter1
+            });
+        });
     
         it('should revert when adding a registered voter', async () => {
             await votingInstance.addVoter(voter1, { from: owner });
@@ -103,14 +111,18 @@ contract('Voting', accounts => {
             await votingInstance.addVoter(voter1, { from: owner });
         });
 
-        it('should add a proposal and emit ProposalRegistered event', async () => {
+        it('should add a proposal', async () => {
             await votingInstance.startProposalsRegistering({ from: owner });
-
-            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
+            await votingInstance.addProposal('Proposal 1', { from: voter1 });
             const proposal = await votingInstance.getOneProposal(1, { from: voter1 });
 
             expect(proposal.description).to.be.equal('Proposal 1');
             expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should emit ProposalRegistered event', async () => {
+            await votingInstance.startProposalsRegistering({ from: owner });
+            const addProposal = await votingInstance.addProposal('Proposal 1', { from: voter1 });
 
             expectEvent(addProposal, 'ProposalRegistered', { proposalId: new BN(1) });
         });
@@ -224,6 +236,16 @@ contract('Voting', accounts => {
             expect(await secondProposal.voteCount).to.be.bignumber.equal(new BN(1));
         });
 
+        it('should emit Voted event', async () => {
+            await votingInstance.startVotingSession({ from: owner });
+            const setVote = await votingInstance.setVote(1, { from: voter1 });
+
+            expectEvent(setVote, 'Voted', {
+                voter: voter1,
+                proposalId: new BN(1),
+            });
+        });
+
         it('should update registered voter, after voting for a proposal', async () => {
             await votingInstance.startVotingSession({ from: owner });
             await votingInstance.setVote(2, { from: voter1 });
@@ -285,6 +307,9 @@ contract('Voting', accounts => {
         it('should tally votes when voting session is ended', async () => {
             expect(await votingInstance.winningProposalID()).to.be.bignumber.equal(new BN(1));
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(5));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(tallyVotes, 'WorkflowStatusChange', {
                 previousStatus: new BN(4),
                 newStatus: new BN(5)
@@ -351,11 +376,6 @@ contract('Voting', accounts => {
 
         it('should start proposals registering after voters registration started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(1));
-
-            await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
-                previousStatus: new BN(0),
-                newStatus: new BN(1)
-            });
         });
 
         it('should add GENESIS proposal', async () => {
@@ -363,6 +383,13 @@ contract('Voting', accounts => {
 
             expect(proposal.description).to.be.equal('GENESIS');
             expect(proposal.voteCount).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
+            await expectEvent(startProposalsRegistering, 'WorkflowStatusChange', {
+                previousStatus: new BN(0),
+                newStatus: new BN(1)
+            });
         });
 
         it('should revert when trying to start proposals registering before voters registration started', async () => {
@@ -391,8 +418,11 @@ contract('Voting', accounts => {
             endProposalsRegistering = await votingInstance.endProposalsRegistering({ from: owner });
         });
 
-        it('should end proposals registration when proposals registration is started', async () => {
+        it('should end proposals registration after proposals registration started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(2));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(endProposalsRegistering, 'WorkflowStatusChange', {
                 previousStatus: new BN(1),
                 newStatus: new BN(2)
@@ -428,6 +458,9 @@ contract('Voting', accounts => {
 
         it('should start voting session when proposals registration is ended', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(3));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(startVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(2),
                 newStatus: new BN(3)
@@ -462,8 +495,11 @@ contract('Voting', accounts => {
             endVotingSession = await votingInstance.endVotingSession({ from: owner });
         });
 
-        it('should end voting session when start voting session started', async () => {
+        it('should end voting session after start voting session started', async () => {
             expect(await votingInstance.workflowStatus()).to.be.bignumber.equal(new BN(4));
+        });
+
+        it('should emit WorkflowStatusChange event', async () => {
             await expectEvent(endVotingSession, 'WorkflowStatusChange', {
                 previousStatus: new BN(3),
                 newStatus: new BN(4)
