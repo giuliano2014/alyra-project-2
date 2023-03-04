@@ -31,7 +31,6 @@ contract Voting is Ownable {
     Proposal[] proposalsArray;
     mapping (address => Voter) voters;
 
-
     event VoterRegistered(address voterAddress); 
     event WorkflowStatusChange(WorkflowStatus previousStatus, WorkflowStatus newStatus);
     event ProposalRegistered(uint proposalId);
@@ -54,7 +53,6 @@ contract Voting is Ownable {
         return proposalsArray[_id];
     }
 
- 
     // ::::::::::::: REGISTRATION ::::::::::::: // 
 
     function addVoter(address _addr) external onlyOwner {
@@ -65,7 +63,6 @@ contract Voting is Ownable {
         emit VoterRegistered(_addr);
     }
  
-
     // ::::::::::::: PROPOSAL ::::::::::::: // 
 
     function addProposal(string calldata _desc) external onlyVoters {
@@ -94,7 +91,6 @@ contract Voting is Ownable {
     }
 
     // ::::::::::::: STATE ::::::::::::: //
-
 
     function startProposalsRegistering() external onlyOwner {
         require(workflowStatus == WorkflowStatus.RegisteringVoters, 'Registering proposals cant be started now');
@@ -125,18 +121,17 @@ contract Voting is Ownable {
         emit WorkflowStatusChange(WorkflowStatus.VotingSessionStarted, WorkflowStatus.VotingSessionEnded);
     }
 
+    function tallyVotes() external onlyOwner {
+        require(workflowStatus == WorkflowStatus.VotingSessionEnded, "Current status is not voting session ended");
+        uint _winningProposalId;
+        for (uint256 p = 0; p < proposalsArray.length; p++) {
+            if (proposalsArray[p].voteCount > proposalsArray[_winningProposalId].voteCount) {
+                _winningProposalId = p;
+            }
+        }
+        winningProposalID = _winningProposalId;
 
-   function tallyVotes() external onlyOwner {
-       require(workflowStatus == WorkflowStatus.VotingSessionEnded, "Current status is not voting session ended");
-       uint _winningProposalId;
-      for (uint256 p = 0; p < proposalsArray.length; p++) {
-           if (proposalsArray[p].voteCount > proposalsArray[_winningProposalId].voteCount) {
-               _winningProposalId = p;
-          }
-       }
-       winningProposalID = _winningProposalId;
-       
-       workflowStatus = WorkflowStatus.VotesTallied;
-       emit WorkflowStatusChange(WorkflowStatus.VotingSessionEnded, WorkflowStatus.VotesTallied);
+        workflowStatus = WorkflowStatus.VotesTallied;
+        emit WorkflowStatusChange(WorkflowStatus.VotingSessionEnded, WorkflowStatus.VotesTallied);
     }
 }
